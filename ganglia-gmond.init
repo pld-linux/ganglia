@@ -1,0 +1,95 @@
+#!/bin/sh
+#
+# gmond	Ganglia Monitoring daemon
+#
+# chkconfig:	345 70 30
+#
+# description:	Ganglia Monitoring daemon
+#
+# processname:	gmond
+# config:
+# pidfile:
+#
+# $Id$
+
+# Source function library
+. /etc/rc.d/init.d/functions
+
+# Get network config
+. /etc/sysconfig/network
+
+# Get service config - may override defaults
+[ -f /etc/sysconfig/gmond ] && . /etc/sysconfig/gmond
+
+# Check that networking is up.
+if is_yes "${NETWORKING}"; then
+	if [ ! -f /var/lock/subsys/network -a "$1" != stop -a "$1" != status ]; then
+		msg_network_down "GANGLIA gmond"
+		exit 1
+	fi
+else
+	exit 0
+fi
+
+start() {
+	# Check if the service is already running?
+	if [ ! -f /var/lock/subsys/gmond ]; then
+		msg_starting "GANGLIA gmond"
+		daemon /usr/sbin/gmond
+		RETVAL=$?
+		[ $RETVAL -eq 0 ] && touch /var/lock/subsys/gmond
+	else
+		msg_already_running "GANGLIA gmond"
+	fi
+}
+
+stop() {
+	if [ -f /var/lock/subsys/gmond ]; then
+		# Stop daemons.
+		msg_stopping "GANGLIA gmond"
+		killproc gmond
+		rm -f /var/lock/subsys/gmond
+	else
+		msg_not_running "GANGLIA gmond"
+	fi
+}
+
+condrestart() {
+	if [ -f /var/lock/subsys/gmond ]; then
+		stop
+		start
+	else
+		msg_not_running "GANGLIA gmond"
+		RETVAL=$1
+	fi
+}
+
+RETVAL=0
+# See how we were called.
+case "$1" in
+  start)
+  	start
+	;;
+  stop)
+  	stop
+	;;
+  restart)
+	stop
+	start
+	;;
+  try-restart)
+	condrestart 0
+	;;
+  force-reload)
+	condrestart 7
+	;;
+  status)
+	status gmond
+	RETVAL=$?
+	;;
+  *)
+	msg_usage "$0 {start|stop|restart|try-restart|force-reload|status}"
+	exit 3
+esac
+
+exit $RETVAL
