@@ -1,0 +1,16 @@
+--- gmond/python_modules/conf.d/diskusage.pyconf-orig	2008-08-12 13:20:42.000000000 +0100
++++ gmond/python_modules/conf.d/diskusage.pyconf	2008-08-12 13:21:53.000000000 +0100
+@@ -7,6 +7,7 @@
+   }
+ }
+ 
++/*
+ collection_group {
+   collect_every = 10
+   time_threshold = 50
+@@ -23,4 +24,5 @@
+     name = "<disk_total-metric-name>"
+   }
+ }
++*/
+ 
