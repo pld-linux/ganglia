@@ -1,12 +1,14 @@
 Summary:	Ganglia Distributed Monitoring System
 Name:		ganglia
 Version:	3.1.1
-Release:	0.1
+Release:	0.2
 License:	BSD
 Group:		Applications/Networking
 URL:		http://ganglia.info/
 Source0:	http://dl.sourceforge.net/ganglia/%{name}-%{version}.tar.gz
 # Source0-md5:	e6f4de42afecb4731a5de4606e3f1045
+Source1:	%{name}-gmond.init
+Source2:	%{name}-gmetad.init
 Patch0:		%{name}-diskusage-fix.patch
 BuildRequires:	apr-devel
 BuildRequires:	expat-devel
@@ -159,8 +161,8 @@ install -d $RPM_BUILD_ROOT%{_localstatedir}/lib/%{name}/rrds
 install -d $RPM_BUILD_ROOT%{_mandir}/man1
 install -d $RPM_BUILD_ROOT%{_mandir}/man5
 ## Put files in place
-cp -p gmond/gmond.init $RPM_BUILD_ROOT/etc/rc.d/init.d/gmond
-cp -p gmetad/gmetad.init $RPM_BUILD_ROOT/etc/rc.d/init.d/gmetad
+install %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/gmond
+install %{SOURCE2} $RPM_BUILD_ROOT/etc/rc.d/init.d/gmetad
 cp -p gmond/gmond.conf.5 $RPM_BUILD_ROOT%{_mandir}/man5/gmond.conf.5
 cp -p gmetad/gmetad.conf $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/gmetad.conf
 cp -p mans/*.1 $RPM_BUILD_ROOT%{_mandir}/man1/
@@ -240,7 +242,6 @@ fi
 %dir %{_libdir}/ganglia
 %{_libdir}/ganglia/*.so
 %exclude %{_libdir}/ganglia/modpython.so
-%attr(755,root,root) %{_bindir}/ganglia-config
 
 %files gmetad
 %defattr(644,root,root,755)
@@ -278,6 +279,7 @@ fi
 
 %files devel
 %defattr(644,root,root,755)
+%attr(755,root,root) %{_bindir}/ganglia-config
 %{_includedir}/*.h
 %{_libdir}/libganglia*.so
 
