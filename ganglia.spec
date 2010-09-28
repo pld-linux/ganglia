@@ -1,12 +1,16 @@
+# TODO
+# - unpackaged
+#   /etc/conf.d/modpython.conf
+#   /etc/gmetad.conf
 Summary:	Ganglia Distributed Monitoring System
 Name:		ganglia
-Version:	3.1.1
-Release:	0.2
+Version:	3.1.7
+Release:	0.1
 License:	BSD
 Group:		Applications/Networking
-URL:		http://ganglia.info/
+URL:		http://www.ganglia.info/
 Source0:	http://dl.sourceforge.net/ganglia/%{name}-%{version}.tar.gz
-# Source0-md5:	e6f4de42afecb4731a5de4606e3f1045
+# Source0-md5:	6aa5e2109c2cc8007a6def0799cf1b4c
 Source1:	%{name}-gmond.init
 Source2:	%{name}-gmetad.init
 Patch0:		%{name}-diskusage-fix.patch
@@ -103,6 +107,20 @@ programmers can use to build scalable cluster or grid applications
 ## Hey, those shouldn't be executable...
 chmod -x lib/*.{h,x}
 
+cat << 'EOF' > apache.conf
+#
+# Ganglia monitoring system PHP web frontend
+#
+
+Alias /%{name} %{_datadir}/%{name}
+<Location /%{name}>
+	Order deny,allow
+	Deny from all
+	Allow from 127.0.0.1
+	Allow from ::1
+	# Allow from .example.com
+</Location>
+EOF
 
 %build
 %configure \
@@ -129,27 +147,13 @@ rm -rf $RPM_BUILD_ROOT
 install -d $RPM_BUILD_ROOT%{_datadir}/%{name}
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
 cp -a web/* $RPM_BUILD_ROOT%{_datadir}/%{name}
-mv $RPM_BUILD_ROOT%{_datadir}/%{name}/conf.php $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/
+mv $RPM_BUILD_ROOT%{_datadir}/%{name}/conf.php $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/conf.php
 ln -s ../../..%{_sysconfdir}/%{name}/conf.php \
     $RPM_BUILD_ROOT%{_datadir}/%{name}/conf.php
-mv $RPM_BUILD_ROOT%{_datadir}/%{name}/private_clusters $RPM_BUILD_ROOT%{_sysconfdir}/%{name}/
+mv $RPM_BUILD_ROOT%{_datadir}/%{name}/private_clusters $RPM_BUILD_ROOT%{_sysconfdir}/%{name}
 ln -s ../../..%{_sysconfdir}/%{name}/private_clusters \
     $RPM_BUILD_ROOT%{_datadir}/%{name}/private_clusters
 install -d $RPM_BUILD_ROOT%{_webapps}/%{_webapp}
-cat << 'EOF' > apache.conf
-#
-# Ganglia monitoring system php web frontend
-#
-
-Alias /%{name} %{_datadir}/%{name}
-<Location /%{name}>
-	Order deny,allow
-	Deny from all
-	Allow from 127.0.0.1
-	Allow from ::1
-	# Allow from .example.com
-</Location>
-EOF
 cp -a apache.conf $RPM_BUILD_ROOT%{_webapps}/%{_webapp}/apache.conf
 cp -a apache.conf $RPM_BUILD_ROOT%{_webapps}/%{_webapp}/httpd.conf
 
@@ -164,16 +168,16 @@ install -d $RPM_BUILD_ROOT%{_mandir}/man5
 install %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/gmond
 install %{SOURCE2} $RPM_BUILD_ROOT/etc/rc.d/init.d/gmetad
 cp -p gmond/gmond.conf.5 $RPM_BUILD_ROOT%{_mandir}/man5/gmond.conf.5
-cp -p gmetad/gmetad.conf $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/gmetad.conf
-cp -p mans/*.1 $RPM_BUILD_ROOT%{_mandir}/man1/
+cp -p gmetad/gmetad.conf.in $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/gmetad.conf
+cp -p mans/*.1 $RPM_BUILD_ROOT%{_mandir}/man1
 ## Build default gmond.conf from gmond using the '-t' flag
 gmond/gmond -t | %{__perl} -pe 's|nobody|ganglia|g' > $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/gmond.conf
 
 ## Python bits
 # Copy the python metric modules and .conf files
-cp -p gmond/python_modules/conf.d/*.pyconf $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/conf.d/
-cp -p gmond/modules/conf.d/*.conf $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/conf.d/
-cp -p gmond/python_modules/*/*.{py,pyc} $RPM_BUILD_ROOT%{_libdir}/ganglia/python_modules/
+cp -p gmond/python_modules/conf.d/*.pyconf $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/conf.d
+cp -p gmond/modules/conf.d/*.conf $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/conf.d
+cp -p gmond/python_modules/*/*.py $RPM_BUILD_ROOT%{_libdir}/ganglia/python_modules
 # Don't install the example modules
 rm -f $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/conf.d/example.conf
 rm -f $RPM_BUILD_ROOT%{_sysconfdir}/ganglia/conf.d/example.pyconf
@@ -195,10 +199,9 @@ rm -f $RPM_BUILD_ROOT%{_datadir}/%{name}/{Makefile.am,version.php.in}
 rm -rf $RPM_BUILD_ROOT
 
 %pre
-## Add the "ganglia" user
+/sbin/ldconfig
 %groupadd -g 206 ganglia
 %useradd -u 206 -c "Ganglia Monitoring System" -s /sbin/nologin -g ganglia -r -d %{_localstatedir}/lib/%{name} ganglia
-/sbin/ldconfig
 
 %post -p /sbin/ldconfig
 
@@ -220,8 +223,8 @@ if [ "$1" = 0 ]; then
 	/sbin/chkconfig --del gmond
 fi
 
-%post devel -p /sbin/ldconfig
-%postun devel -p /sbin/ldconfig
+%post	devel -p /sbin/ldconfig
+%postun	devel -p /sbin/ldconfig
 
 %triggerin web -- apache1 < 1.3.37-3, apache1-base
 %webapp_register apache %{_webapp}
@@ -238,7 +241,8 @@ fi
 %files
 %defattr(644,root,root,755)
 %doc AUTHORS COPYING NEWS README ChangeLog
-%attr(755,root,root) %{_libdir}/libganglia*.so.*
+%attr(755,root,root) %{_libdir}/libganglia-%{version}.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libganglia-%{version}.so.0
 %dir %{_libdir}/ganglia
 %{_libdir}/ganglia/*.so
 %exclude %{_libdir}/ganglia/modpython.so
@@ -271,7 +275,7 @@ fi
 
 %files gmond-python
 %defattr(644,root,root,755)
-%dir %{_libdir}/ganglia/python_modules/
+%dir %{_libdir}/ganglia/python_modules
 %{_libdir}/ganglia/python_modules/*.py*
 %attr(755,root,root) %{_libdir}/ganglia/modpython.so*
 %config(noreplace) %{_sysconfdir}/ganglia/conf.d/*.pyconf*
@@ -281,7 +285,7 @@ fi
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_bindir}/ganglia-config
 %{_includedir}/*.h
-%{_libdir}/libganglia*.so
+%{_libdir}/libganglia.so
 
 %files web
 %defattr(644,root,root,755)
