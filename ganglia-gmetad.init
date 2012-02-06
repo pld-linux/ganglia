@@ -7,8 +7,6 @@
 # description:	gmetad startup script
 #
 # processname:	gmetad
-# config:
-# pidfile:
 #
 # $Id$
 
