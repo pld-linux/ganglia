@@ -103,7 +103,7 @@ programmers can use to build scalable cluster or grid applications
 
 %prep
 %setup -q
-%patch0 -p0
+%patch -P0 -p0
 ## Hey, those shouldn't be executable...
 chmod -x lib/*.{h,x}
 
